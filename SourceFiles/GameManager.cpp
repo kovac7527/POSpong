@@ -5,8 +5,7 @@
 #include "../HeaderFiles/GameManager.h"
 
 
-#include <stdlib.h>
-#include <unistd.h>
+
 
 
 GameManager::GameManager( uint w,  uint h)
@@ -16,6 +15,8 @@ GameManager::GameManager( uint w,  uint h)
     playing = false;
     paused = false;
     windowFocus = true;
+    imClient = false;
+    imServer = false;
 }
 
 void GameManager::OpenWindow()
@@ -39,72 +40,68 @@ void GameManager::OpenWindow()
 //    player2->Reset();
 //}
 
-[[noreturn]] void GameManager::start()
-{
-    ball->setRandomDireciton();
-    while (true) {
-        ball->move();
 
-    }
-}
 
 void GameManager::setWindow(sf::RenderWindow* win ) {
     window = win;
 }
 
 void GameManager::update() {
+    int n;
     if (playing) {
 
         if(!paused) {
+            if(imServer || (imServer && imClient)) {
+                switch (colisDetector->CheckForBallColision())  //checking for colisions
+                {
+                    case noColision:
+                        break;
+                    case ColisionPlayer1:
 
-            switch (colisDetector->CheckForBallColision())  //checking for colisions
-            {
-                case noColision:
-                    break;
-                case ColisionPlayer1:
+                        ball->changeDirection((ballDirection) ((rand() % 3) + 4));
+                        break;
+                    case ColisionPlayer2:
 
-                    ball->changeDirection((ballDirection)((rand() % 3) + 4));
-                    break;
-                case ColisionPlayer2:
+                        ball->changeDirection((ballDirection) ((rand() % 3) + 1));
+                        break;
+                    case ColisionUpperCorner:
+                        ball->changeDirection((ballDirection) (ball->getBallDireciton() + 1));
+                        break;
+                    case ColisionDownCorner:
+                        ball->changeDirection((ballDirection) (ball->getBallDireciton() - 1));
+                        break;
+                    case ColisionLeftSide:
 
-                    ball->changeDirection((ballDirection)((rand() % 3) + 1));
-                    break;
-                case ColisionUpperCorner:
-                    ball->changeDirection((ballDirection)(ball->getBallDireciton() + 1));
-                    break;
-                case ColisionDownCorner:
-                    ball->changeDirection((ballDirection)(ball->getBallDireciton() - 1));
-                    break;
-                case ColisionLeftSide:
+                        // player 2(red) scores
+                        std::cout << "{GAME} -> 'Player 2' scores !!! " << std::endl;
+                        scorePlayer2++;
+                        sleep(1.5);
+                        this->resetPositions();
+                        ball->changeDirection((ballDirection) 1);
 
-                    // player 2(red) scores
-                    std::cout << "{GAME} -> 'Player 2' scores !!! " << std::endl;
-                    scorePlayer2++;
-                    sleep(1.5);
-                    this->resetPositions();
-                    ball->changeDirection((ballDirection)1);
-
-                    break;
-                case ColisionRightSide:
-                    // player 1(red) scores
-                    std::cout << "{GAME} -> 'Player 1' scores !!! " << std::endl;
-                    scorePlayer1++;
-                    sleep(1.5);
-                    this->resetPositions();
-                    ball->changeDirection((ballDirection)1);
-                    break;
-                default:
-                    break;
+                        break;
+                    case ColisionRightSide:
+                        // player 1(red) scores
+                        std::cout << "{GAME} -> 'Player 1' scores !!! " << std::endl;
+                        scorePlayer1++;
+                        sleep(1.5);
+                        this->resetPositions();
+                        ball->changeDirection((ballDirection) 1);
+                        break;
+                    default:
+                        break;
+                }
             }
 
             // check for player controls
             if (windowFocus) {
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) && !imServer && !imClient) {
                     if (0 < player2->getY() - player2->object.getSize().y / 2) {
                         (*player2).moveUp();
                     }
                 }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && !imServer && !imClient) {
 
                     if (height > (player2->getY() + player2->object.getSize().y / 2)) {
                         (*player2).moveDown();
@@ -112,16 +109,83 @@ void GameManager::update() {
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
                     if (0 < player1->getY() - player1->object.getSize().y / 2) {
-                        (*player1).moveUp();
+
+                        if (imServer) {
+                            (*player1).moveUp();
+                            const char *msg = "w";
+                            int n;
+                            n = write(*newsockfd, msg, strlen(msg) + 1);
+                            if (n < 0) {
+                                perror("Error writing to socket");
+                            }
+                        }
+                        if (imClient && 0 < player2->getY() - player2->object.getSize().y / 2) {
+                            (*player2).moveUp();
+                            const char *msg = "w";
+                            int n;
+                            n = write(*socketfd, msg, strlen(msg) + 1);
+                            if (n < 0) {
+                                perror("Error writing to socket");
+                            }
+                        }
+                        if (!imClient && !imServer) {
+                            player1->moveUp();
+                        }
                     }
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
                     if (height > (player1->getY() + player1->object.getSize().y / 2)) {
-                        (*player1).moveDown();
+
+                        if (imServer) {
+                            player1->moveDown();
+                            const char *msg = "s" ;
+                            n = write(*newsockfd, msg, strlen(msg) + 1);
+                            if (n < 0) {
+                                perror("Error writing to socket");
+                            }
+                        }
+                        if (imClient && height > (player2->getY() + player2->object.getSize().y / 2)) {
+                            (*player2).moveDown();
+                            const char *msg = "s";
+                            int n;
+                            n = write(*socketfd, msg, strlen(msg) + 1);
+                            if (n < 0) {
+                                perror("Error writing to socket");
+                            }
+                        }
+                        if (!imClient && !imServer) {
+                            player2->moveDown();
+                        }
+
                     }
                 }
             }
-            ball->move();
+            if (imServer || (!imServer && !imClient)) {
+
+                ball->move();
+
+                if (imServer){
+                    char integer_stringx[32];
+                    char integer_stringy[32];
+                    int x = ball->getX();
+                    int y = ball->getY();
+
+                    sprintf(integer_stringx, "%d", x);
+                    sprintf(integer_stringy, "%d", y);
+                    char msg[128] = "BallPostition: "; // make sure you allocate enough space to append the other string
+
+                    strcat(msg, integer_stringx);
+                    strcat(msg, ":");
+                    strcat(msg, integer_stringy);
+
+                    n = write(*newsockfd, msg, strlen(msg) + 1);
+                    if (n < 0) {
+                        perror("Error writing to socket");
+                    }
+
+                }
+            }
+
 
         } else {
             this->draw();
@@ -183,12 +247,31 @@ void GameManager::resetGame() {
     this->scorePlayer2 = 0;
     this->resetPositions();
 
+
 }
 
 void GameManager::resetPositions() {
+    if (imServer) {
+        const char *msg = "r" ;
+        int n = write(*newsockfd, msg, strlen(msg) + 1);
+        if (n < 0) {
+            perror("Error writing to socket");
+        }
+    }
     this->ball->Reset();
     this->player1->Reset();
     this->player2->Reset();
+}
+
+
+void GameManager::startServer() {
+  /*  gameServer = new server();//// here will some staff to create server
+    gameServer->startServer(player1 , player2, ball);
+    this->imServer = true;
+    this->imClient = false;*/
+
+
+
 }
 
 

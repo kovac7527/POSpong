@@ -5,12 +5,22 @@
 #ifndef PONG_GAMEMANAGER_H
 #define PONG_GAMEMANAGER_H
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "Player.h"
 #include "Ball.h"
 #include <iostream>
 #include "ColisionDetector.h"
 #include "Menu.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 class GameManager
 {
@@ -18,6 +28,10 @@ private:
 
 
 public:
+    int* socketfd;
+    int* newsockfd;
+    bool imServer;
+    bool imClient;
     bool windowFocus;
     bool playing;
     bool paused;
@@ -30,6 +44,7 @@ public:
     Menu* mainMenu;
     Menu* inGameMenu;
 
+
     sf::RenderWindow* window;
 
     GameManager( uint w,  uint h);
@@ -38,10 +53,12 @@ public:
 
     //void scoreUp(Player * player);
 
-    [[noreturn]] void start();
+
 
     void initializeComponents(float playerSizeX, float playerSizeY, float ballRadius);
     void update();
+
+
 
     void draw();
     void setWindow(sf::RenderWindow* window);
@@ -49,9 +66,10 @@ public:
     void resetGame();
     void resetPositions();
 
+    void startServer();
 
 
-
+    void readFromCLient();
 };
 
 #endif //PONG_GAMEMANAGER_H
