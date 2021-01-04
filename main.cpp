@@ -290,7 +290,7 @@ int main() {
 
 
 
-                                        server = gethostbyname("localhost");
+                                        server = gethostbyname("31.170.83.54");
                                         if (server == NULL)
                                         {
                                             fprintf(stderr, "Error, no such host\n");
