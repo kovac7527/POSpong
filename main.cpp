@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include <netdb.h>
 
-#define SERVER_PORT 9001
-#define HOSTNAME_PORT 9001
+#define SERVER_PORT 9999
+#define HOSTNAME_PORT 9999
 
 
 typedef struct dataCitac{
@@ -265,7 +265,7 @@ int main() {
 
 
 
-                                        server = gethostbyname("localhost");
+                                        server = gethostbyname("31.170.83.54");
                                         if (server == NULL)
                                         {
                                             fprintf(stderr, "Error, no such host\n");
