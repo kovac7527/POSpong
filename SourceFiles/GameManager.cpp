@@ -112,18 +112,26 @@ void GameManager::update() {
 
                         if (imServer) {
                             (*player1).moveUp();
-                            const char *msg = "w";
-                            int n;
-                            n = write(*newsockfd, msg, strlen(msg) + 1);
+                            int x = player1->getX();
+                            int y = player1->getY();
+                            char msg[128] = "movePlayer1:"; // make sure you allocate enough space to append the other string
+
+                            char* posMsg = createPositionMsg(msg,x,y);
+                            n = write(*newsockfd, posMsg, strlen(msg) + 1);
                             if (n < 0) {
                                 perror("Error writing to socket");
                             }
                         }
                         if (imClient && 0 < player2->getY() - player2->object.getSize().y / 2) {
                             (*player2).moveUp();
-                            const char *msg = "w";
+
+                            int x = player2->getX();
+                            int y = player2->getY();
+                            char msg[128] = "movePlayer2:"; // make sure you allocate enough space to append the other string
+
+                            char* posMsg = createPositionMsg(msg,x,y);
                             int n;
-                            n = write(*socketfd, msg, strlen(msg) + 1);
+                            n = write(*socketfd, posMsg, strlen(msg) + 1);
                             if (n < 0) {
                                 perror("Error writing to socket");
                             }
@@ -138,17 +146,28 @@ void GameManager::update() {
 
                         if (imServer) {
                             player1->moveDown();
-                            const char *msg = "s" ;
-                            n = write(*newsockfd, msg, strlen(msg) + 1);
+                            int n;
+                            int x = player1->getX();
+                            int y = player1->getY();
+                            char msg[128] = "movePlayer2:"; // make sure you allocate enough space to append the other string
+
+                            char* posMsg = createPositionMsg(msg,x,y);
+                            n = write(*newsockfd, posMsg, strlen(msg) + 1);
                             if (n < 0) {
                                 perror("Error writing to socket");
                             }
                         }
                         if (imClient && height > (player2->getY() + player2->object.getSize().y / 2)) {
                             (*player2).moveDown();
-                            const char *msg = "s";
+
                             int n;
-                            n = write(*socketfd, msg, strlen(msg) + 1);
+                            int x = player2->getX();
+                            int y = player2->getY();
+                            char msg[128] = "movePlayer2:"; // make sure you allocate enough space to append the other string
+
+                            char* posMsg = createPositionMsg(msg,x,y);
+
+                            n = write(*socketfd, posMsg, strlen(msg) + 1);
                             if (n < 0) {
                                 perror("Error writing to socket");
                             }
@@ -165,20 +184,14 @@ void GameManager::update() {
                 ball->move();
 
                 if (imServer){
-                    char integer_stringx[32];
-                    char integer_stringy[32];
+
                     int x = ball->getX();
                     int y = ball->getY();
-
-                    sprintf(integer_stringx, "%d", x);
-                    sprintf(integer_stringy, "%d", y);
                     char msg[128] = "BallPostition: "; // make sure you allocate enough space to append the other string
 
-                    strcat(msg, integer_stringx);
-                    strcat(msg, ":");
-                    strcat(msg, integer_stringy);
+                    char* posMsg = createPositionMsg(msg,x,y);
 
-                    n = write(*newsockfd, msg, strlen(msg) + 1);
+                    n = write(*newsockfd, posMsg, strlen(msg) + 1);
                     if (n < 0) {
                         perror("Error writing to socket");
                     }
@@ -272,6 +285,19 @@ void GameManager::startServer() {
 
 
 
+}
+
+char *GameManager::createPositionMsg(char* msg, int x, int y) {
+    char integer_stringx[32];
+    char integer_stringy[32];
+
+    sprintf(integer_stringx, "%d", x);
+    sprintf(integer_stringy, "%d", y);
+
+    strcat(msg, integer_stringx);
+    strcat(msg, ":");
+    strcat(msg, integer_stringy);
+    return msg;
 }
 
 

@@ -66,6 +66,8 @@ public:
     void resetGame();
     void resetPositions();
 
+    char* createPositionMsg(char* msg, int x, int y);
+
     void startServer();
 
 

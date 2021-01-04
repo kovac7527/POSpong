@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include <netdb.h>
 
-#define SERVER_PORT 9001
-#define HOSTNAME_PORT 9001
+#define SERVER_PORT 9999
+#define HOSTNAME_PORT 9999
 
 
 typedef struct dataCitac{
@@ -35,7 +35,8 @@ typedef struct dataCitacServeru{
 } DATA_CIT_SERVER;
 
 void * readFromClient (void* param) {
-
+    char * pch;
+    int i = 0;
     char buffer[256];
     int n;
     DATA_CIT * data = (DATA_CIT*) param;
@@ -49,12 +50,24 @@ void * readFromClient (void* param) {
             perror("Error reading from socket");
             return NULL;
         }
-        if (buffer[0] == 'w') {
-            printf("{Thread (readFromClient)} -> Client player2 is moving up\n");
-            data->player2Klient->moveUp();
-        } else if (buffer[0] == 's') {
-            printf("{Thread (readFromClient)} -> Client player2 is moving down\n");
-            data->player2Klient->moveDown();
+        if (buffer[0] == 'm') {
+            printf("{Thread (readFromClient)} -> Client player2 is moving \n");
+            pch = strtok (buffer,":");
+            i = 0;
+            sf::Vector2f position;
+            while (pch != NULL)
+            {
+                printf (" delimited %s\n",pch);
+
+                if (i==1){
+                    position.x = atoi(pch);
+                } else if(i==2) {
+                    position.y = atoi(pch);
+                } pch = strtok (NULL, ":");
+                i++;
+            }
+            data->manager->player2->object.setPosition(position);
+
         }
         printf("Here is the message: %s\n", buffer);
 
@@ -74,6 +87,8 @@ void * readFromServer (void* param) {
     int n;
     DATA_CIT_SERVER * data = (DATA_CIT_SERVER *) param;
     printf("{Vlakno} : Reading from server started\n");
+    char * pch;
+    int i = 0;
     while (true) {
 
         bzero(buffer, 255);
@@ -83,19 +98,29 @@ void * readFromServer (void* param) {
             perror("Error reading from socket");
             return NULL;
         }
-        if (buffer[0] == 'w') {
-            printf("{Thread (readFromServer)} -> SERVER player1 is moving up\n");
-            data->player1Server->moveUp();
-        } else if (buffer[0] == 's') {
-            printf("{Thread (readFromServer)} -> SERVER player1 is moving down\n");
-            data->player1Server->moveDown();
-        } else if (buffer[0] == 'r') {
-            data->manager->resetPositions();
-        } else {
-            char * pch;
+       if (buffer[0] == 'm') {
+           printf("{Thread (readFromServer)} -> SERVER player1 is moving to position\n");
+           pch = strtok (buffer,":");
+           i = 0;
+           sf::Vector2f position;
+           while (pch != NULL)
+           {
+               printf (" delimited %s\n",pch);
+
+               if (i==1){
+                   position.x = atoi(pch);
+               } else if(i==2) {
+                   position.y = atoi(pch);
+               } pch = strtok (NULL, ":");
+               i++;
+           }
+           data->manager->player1->object.setPosition(position);
+
+        }  else {
+
             printf ("Splitting string \"%s\" into tokens:\n",buffer);
             pch = strtok (buffer,":");
-            int i = 0;
+            i = 0;
             sf::Vector2f position;
             while (pch != NULL)
             {
