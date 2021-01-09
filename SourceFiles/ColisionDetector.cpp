@@ -62,5 +62,5 @@ ballColison ColisionDetector::CheckForBallColision()
 
 ColisionDetector::~ColisionDetector()
 {
-    delete player1, player2, ball;
+
 }

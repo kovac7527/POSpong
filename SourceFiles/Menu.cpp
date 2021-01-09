@@ -74,5 +74,7 @@ int Menu::GetPressedItem()
 
 Menu::~Menu()
 {
-    delete menuText;
+
+   delete[] menuText;
+
 }

@@ -52,13 +52,9 @@ public:
     sf::RenderWindow* window;
 
     GameManager( uint w,  uint h);
+    ~GameManager();
     void OpenWindow();
-
-
     //void scoreUp(Player * player);
-
-
-
     void initializeComponents(float playerSizeX, float playerSizeY, float ballRadius);
     void update();
 

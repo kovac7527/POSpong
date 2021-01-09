@@ -300,4 +300,13 @@ char *GameManager::createPositionMsg(char* msg, int x, int y) {
     return msg;
 }
 
+GameManager::~GameManager() {
+    delete mainMenu;
+    delete colisDetector;
+    delete inGameMenu;
+    delete player2;
+    delete player1;
+    delete ball;
+}
+
 

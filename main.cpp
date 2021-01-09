@@ -135,6 +135,7 @@ void * readFromClient (void* param) {
     }
     pthread_mutex_unlock(data->mutex);
     close(*data->newsockfd);
+
 }
 
 
@@ -508,6 +509,7 @@ int main() {
 
 
     }
+    delete &manager;
     pthread_cancel(read_vlakno);
     pthread_cancel(readFromServer_vlakno);
     pthread_mutex_destroy(&mutex);
