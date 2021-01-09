@@ -36,6 +36,10 @@ public:
     bool playing;
     bool paused;
     uint width, height;
+    pthread_mutex_t mutex;
+    bool updatedPosPlayer1;
+    bool updatedPosPlayer2;
+    bool updatedPosBall;
     int scorePlayer1, scorePlayer2;
     Ball* ball;
     Player* player1 ;

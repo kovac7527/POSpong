@@ -18,9 +18,21 @@
 
 #define SERVER_PORT 9999
 #define HOSTNAME_PORT 9999
+#define IP_ADDRESS "localhost"
 
+
+typedef struct dataStartServer{
+    int * sockfd;
+    int * newsockfd;
+    GameManager* manager;
+    pthread_cond_t * cond_player_joined;
+    pthread_mutex_t * mutex;
+
+} DATA_START_SERVER;
 
 typedef struct dataCitac{
+    pthread_cond_t * cond_player_joined;
+    pthread_mutex_t * mutex;
     int * newsockfd;
     Player* player2Klient;
     GameManager* manager;
@@ -34,13 +46,52 @@ typedef struct dataCitacServeru{
 
 } DATA_CIT_SERVER;
 
+
+void * startServer(void * param){
+    DATA_START_SERVER * data = (DATA_START_SERVER * ) param;
+    printf("{Thread (startServer} -> started\n");
+    struct sockaddr_in serv_addr, cli_addr;
+    socklen_t cli_len;
+
+    pthread_mutex_lock(data->mutex);
+    printf("{Thread (startServer} -> locked starting to listed\n");
+    listen(*data->sockfd, 5);
+    printf("{Thread (startServer} -> after starting to listed\n");
+    cli_len = sizeof(cli_addr);
+    printf("{Thread (startServer} -> Before accept\n");
+    *data->newsockfd = accept(*data->sockfd, (struct sockaddr *) &cli_addr, &cli_len);
+    printf("{Thread (startServer} -> afteraccept\n");
+    if (*data->newsockfd < 0) {
+        perror("ERROR on accept");
+    } else {
+        printf("{SERVER} -> Player joined server\n") ;
+        data->manager->playing = true;
+        data->manager->paused = false;
+        data->manager->imServer = true;
+        data->manager->imClient = false;
+        data->manager->newsockfd = data->newsockfd;
+        data->manager->resetGame();
+        data->manager->ball->direction=ballDirection::LEFT;
+
+    }
+    printf("{Thread (startServer} -> end sending signal unlocking mutex\n");
+    pthread_mutex_unlock(data->mutex);
+    pthread_cond_broadcast(data->cond_player_joined);
+}
+
+
+
 void * readFromClient (void* param) {
+
     char * pch;
     int i = 0;
     char buffer[256];
     int n;
     DATA_CIT * data = (DATA_CIT*) param;
-
+    pthread_mutex_lock(data->mutex);
+    pthread_cond_wait(data->cond_player_joined,data->mutex);
+    printf("{Thread (readFromClient)} -> Got info about joining player start reading moves \n");
+    sleep(0.5);
     while (true) {
 
         bzero(buffer, 255);
@@ -66,7 +117,12 @@ void * readFromClient (void* param) {
                 } pch = strtok (NULL, ":");
                 i++;
             }
-            data->manager->player2->object.setPosition(position);
+
+
+                 data->manager->player2->object.setPosition(position);
+
+
+
 
         }
         printf("Here is the message: %s\n", buffer);
@@ -77,6 +133,7 @@ void * readFromClient (void* param) {
 
 
     }
+    pthread_mutex_unlock(data->mutex);
     close(*data->newsockfd);
 }
 
@@ -165,8 +222,13 @@ int main() {
     pthread_t read_vlakno;
     DATA_CIT dataCitac;
 
+    int newsockfd;
     pthread_t readFromServer_vlakno;
     DATA_CIT_SERVER dataCitacServer;
+
+    pthread_t startServer_vlakno;
+    DATA_START_SERVER dataStartServer;
+
     //pthread_attr_t attr_t1;
     //pthread_attr_init(&attr_t1);
     //pthread_attr_setdetachstate(&attr_t1,PTHREAD_CREATE_DETACHED);
@@ -190,6 +252,18 @@ int main() {
 
     // (*player1).setPosition(-view.getSize().x / 2, -view.getSize().y / 2); // works fine only with default origin
     //(*player2).setPosition(view.getSize().x / 2 - ((*player2).object.getSize().x), view.getSize().y / 2 - ((*player2).object.getSize().y));   // works fine only with default origin
+    pthread_cond_t cond_player_joined;
+    pthread_cond_init(&cond_player_joined,NULL);
+    pthread_mutex_t  mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    dataCitac.newsockfd = &newsockfd;
+    dataCitac.manager = &manager;
+    dataCitac.cond_player_joined = &cond_player_joined;
+    dataCitac.mutex = &mutex;
+
+
+    pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);
+
     while (window.isOpen()) {
         sf::Event evnt;
 
@@ -231,9 +305,10 @@ int main() {
                                         std::cout << "{MENU} -> 'Create SERVER' Buton pressed" << std::endl;
 
 
-                                        int newsockfd;
+
+
                                         socklen_t cli_len;
-                                        struct sockaddr_in serv_addr, cli_addr;
+                                        struct sockaddr_in serv_addr;
 
 
                                         bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -255,7 +330,13 @@ int main() {
                                         }
 
 
-                                        listen(sockfd, 5);
+                                        dataStartServer.sockfd = &sockfd;
+                                        dataStartServer.newsockfd = &newsockfd;
+                                        dataStartServer.manager = &manager;
+                                        dataStartServer.cond_player_joined = &cond_player_joined;
+                                        dataStartServer.mutex = &mutex;
+                                        pthread_create(&startServer_vlakno,NULL,&startServer,&dataStartServer);
+                                     /*   listen(sockfd, 5);
                                         cli_len = sizeof(cli_addr);
 
 
@@ -274,14 +355,14 @@ int main() {
                                             manager.resetGame();
                                             manager.ball->direction=ballDirection::LEFT;
 
-                                        }
+                                        }*/
 
 
-                                        dataCitac.newsockfd = &newsockfd;
+                                        /*dataCitac.newsockfd = &newsockfd;
                                         dataCitac.manager = &manager;
 
 
-                                        pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);
+                                        pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);*/
                                         //pthread_detach(read_vlakno);
                                         break;
                                     case 2:
@@ -293,7 +374,7 @@ int main() {
 
 
 
-                                        server = gethostbyname("31.170.83.54");
+                                        server = gethostbyname(IP_ADDRESS);
                                         if (server == NULL)
                                         {
                                             fprintf(stderr, "Error, no such host\n");
@@ -346,6 +427,7 @@ int main() {
                                     default:
                                         break;
                                 }
+
                             default:
                                 break;
 
@@ -426,6 +508,9 @@ int main() {
 
 
     }
-    //pthread_join(read_vlakno,NULL);
+    pthread_cancel(read_vlakno);
+    pthread_cancel(readFromServer_vlakno);
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&cond_player_joined);
     return 0;
 }
