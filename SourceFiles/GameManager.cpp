@@ -51,7 +51,7 @@ void GameManager::update() {
     if (playing) {
 
         if(!paused) {
-            if(imServer || (imServer && imClient)) {
+            if(imServer || (!imServer && !imClient)) {
                 switch (colisDetector->CheckForBallColision())  //checking for colisions
                 {
                     case noColision:
@@ -149,7 +149,7 @@ void GameManager::update() {
                             int n;
                             int x = player1->getX();
                             int y = player1->getY();
-                            char msg[128] = "movePlayer2:"; // make sure you allocate enough space to append the other string
+                            char msg[128] = "movePlayer1:"; // make sure you allocate enough space to append the other string
 
                             char* posMsg = createPositionMsg(msg,x,y);
                             n = write(*newsockfd, posMsg, strlen(msg) + 1);
@@ -173,7 +173,7 @@ void GameManager::update() {
                             }
                         }
                         if (!imClient && !imServer) {
-                            player2->moveDown();
+                            player1->moveDown();
                         }
 
                     }

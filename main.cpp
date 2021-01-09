@@ -135,6 +135,9 @@ void * readFromServer (void* param) {
             }
             data->manager->ball->object.setPosition(position);
         }
+        if (buffer[0] == 'r') {
+            data->manager->resetPositions();
+        }
         printf("Here is the message: %s\n", buffer);
 
 
