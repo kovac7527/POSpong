@@ -5,15 +5,13 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdbool.h>
+
 #include <string.h>
-#include <stdio.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
+
 #include <netdb.h>
 
 #define SERVER_PORT 9999
@@ -31,6 +29,7 @@ typedef struct dataStartServer{
 } DATA_START_SERVER;
 
 typedef struct dataCitac{
+    bool * running;
     pthread_cond_t * cond_player_joined;
     pthread_mutex_t * mutex;
     int * newsockfd;
@@ -40,6 +39,7 @@ typedef struct dataCitac{
 } DATA_CIT;
 
 typedef struct dataCitacServeru{
+    bool * running;
     int * sockfd;
     Player* player1Server;
     GameManager* manager;
@@ -50,7 +50,7 @@ typedef struct dataCitacServeru{
 void * startServer(void * param){
     DATA_START_SERVER * data = (DATA_START_SERVER * ) param;
     printf("{Thread (startServer} -> started\n");
-    struct sockaddr_in serv_addr, cli_addr;
+    struct sockaddr_in  cli_addr;
     socklen_t cli_len;
 
     pthread_mutex_lock(data->mutex);
@@ -75,8 +75,10 @@ void * startServer(void * param){
 
     }
     printf("{Thread (startServer} -> end sending signal unlocking mutex\n");
-    pthread_mutex_unlock(data->mutex);
+
     pthread_cond_broadcast(data->cond_player_joined);
+    pthread_mutex_unlock(data->mutex);
+    return NULL;
 }
 
 
@@ -88,14 +90,34 @@ void * readFromClient (void* param) {
     char buffer[256];
     int n;
     DATA_CIT * data = (DATA_CIT*) param;
-    pthread_mutex_lock(data->mutex);
-    pthread_cond_wait(data->cond_player_joined,data->mutex);
-    printf("{Thread (readFromClient)} -> Got info about joining player start reading moves \n");
-    sleep(0.5);
-    while (true) {
 
+    printf("Vlakno read from client started\n");
+
+    printf("Waiting for signal\n");
+    pthread_cond_wait(data->cond_player_joined,data->mutex);
+    printf("reading from client started\n");
+
+
+    while (*data->running) {
+
+        printf("reading from client  before read\n");
         bzero(buffer, 255);
         n = read(*data->newsockfd, buffer, 255);
+        printf("reading from client  after read\n");
+        if (buffer[0] == 'c') {
+            printf("Cancel from client\n");
+            data->manager->playing = false;
+            data->manager->paused = false;
+
+            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+            printf("Close msg send back \n");
+            int n = write(*data->newsockfd, msg, strlen(msg) + 1);
+            if (n < 0) {
+                perror("Cancel");
+            }
+            break;
+        }
+
         //sleep(2);
         if (n < 0) {
             perror("Error reading from socket");
@@ -133,9 +155,9 @@ void * readFromClient (void* param) {
 
 
     }
-    pthread_mutex_unlock(data->mutex);
-    close(*data->newsockfd);
 
+    printf("{Vlakno} : Reading from CLIENT ended\n");
+    return NULL;
 }
 
 
@@ -147,23 +169,37 @@ void * readFromServer (void* param) {
     printf("{Vlakno} : Reading from server started\n");
     char * pch;
     int i = 0;
-    while (true) {
+    while (*data->running) {
 
         bzero(buffer, 255);
         n = read(*data->sockfd, buffer, 255);
+        if (buffer[0] == 'c') {
+            printf("Cancel from server\n");
+
+            data->manager->playing = false;
+            data->manager->paused = false;
+
+            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+            printf("Sending server info about disconected klient \n");
+            int n = write(*data->sockfd, msg, strlen(msg) + 1);
+            if (n < 0) {
+                perror("Error writing to socket");
+            }
+            break;
+        }
         //sleep(2);
         if (n < 0) {
             perror("Error reading from socket");
             return NULL;
         }
        if (buffer[0] == 'm') {
-           printf("{Thread (readFromServer)} -> SERVER player1 is moving to position\n");
+           //printf("{Thread (readFromServer)} -> SERVER player1 is moving to position\n");
            pch = strtok (buffer,":");
            i = 0;
            sf::Vector2f position;
            while (pch != NULL)
            {
-               printf (" delimited %s\n",pch);
+               //printf (" delimited %s\n",pch);
 
                if (i==1){
                    position.x = atoi(pch);
@@ -176,13 +212,13 @@ void * readFromServer (void* param) {
 
         }  else {
 
-            printf ("Splitting string \"%s\" into tokens:\n",buffer);
+           // printf ("Splitting string \"%s\" into tokens:\n",buffer);
             pch = strtok (buffer,":");
             i = 0;
             sf::Vector2f position;
             while (pch != NULL)
             {
-                printf (" delimited %s\n",pch);
+               // printf (" delimited %s\n",pch);
 
                 if (i==1){
                     position.x = atoi(pch);
@@ -196,7 +232,7 @@ void * readFromServer (void* param) {
         if (buffer[0] == 'r') {
             data->manager->resetPositions();
         }
-        printf("Here is the message: %s\n", buffer);
+        //printf("Here is the message: %s\n", buffer);
 
 
         if (!data->manager->imClient) {
@@ -204,14 +240,16 @@ void * readFromServer (void* param) {
         }
 
     }
-    close(*data->sockfd);
+    printf("{Vlakno} : Reading from server ENDED\n");
+    return NULL;
+
 }
 
 
 
 int main() {
 
-
+    bool running = true;
     uint width, height;
     width = 400;
     height = 400;
@@ -235,6 +273,8 @@ int main() {
     //pthread_attr_setdetachstate(&attr_t1,PTHREAD_CREATE_DETACHED);
     dataCitac.player2Klient = manager.player2;
     dataCitacServer.player1Server = manager.player1;
+    dataCitac.running= &running;
+    dataCitacServer.running = &running;
 
     int sockfd;
 
@@ -263,7 +303,6 @@ int main() {
     dataCitac.mutex = &mutex;
 
 
-    pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);
 
     while (window.isOpen()) {
         sf::Event evnt;
@@ -280,7 +319,29 @@ int main() {
 
                     break;
                 case sf::Event::Closed:
+
+                    if (manager.imClient) {
+                        char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                        printf("Sending server info about disconected klient \n");
+                         int n = write(sockfd, msg, strlen(msg) + 1);
+                        if (n < 0) {
+                            perror("Error writing to socket");
+                        }
+                    }
+
+
+                    if (manager.imServer) {
+                        char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                        int n = write(newsockfd, msg, strlen(msg) + 1);
+                        if (n < 0) {
+                            perror("Error writing to socket");
+                        }
+                    }
+
+
+                    running = false;
                     window.close();
+
                     break;
                 case sf::Event::KeyReleased:
 
@@ -304,7 +365,7 @@ int main() {
                                         break;
                                     case 1:
                                         std::cout << "{MENU} -> 'Create SERVER' Buton pressed" << std::endl;
-
+                                        pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);
 
 
 
@@ -423,8 +484,27 @@ int main() {
                                         break;
                                     case 3:
                                         std::cout << "{MENU} -> 'Exit' Buton pressed" << std::endl;
+                                        if (manager.imClient) {
+                                            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                                            printf("Sending server info about disconected klient \n");
+                                            int n = write(sockfd, msg, strlen(msg) + 1);
+                                            if (n < 0) {
+                                                perror("Error writing to socket");
+                                            }
+                                        }
+
+
+                                        if (manager.imServer) {
+                                            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                                            int n = write(newsockfd, msg, strlen(msg) + 1);
+                                            if (n < 0) {
+                                                perror("Error writing to socket");
+                                            }
+                                        }
+                                        running = false;
                                         window.close();
                                         break;
+
                                     default:
                                         break;
                                 }
@@ -463,13 +543,13 @@ int main() {
                                         std::cout << "{InGameMemu} -> 'Back to main menu" << std::endl;
                                         if(manager.imServer) {
                                             pthread_cancel(read_vlakno);
-                                            close(*manager.newsockfd);
+                                            close(newsockfd);
                                             close(sockfd);
 
 
                                         } else if (manager.imClient) {
                                             pthread_cancel(readFromServer_vlakno);
-                                            close(sockfd);
+
                                         }
                                         manager.imServer = false;
                                         manager.imClient = false;
@@ -478,8 +558,29 @@ int main() {
                                         break;
                                     case 2:
                                         std::cout << "{InGameMemu} -> 'Exit' Buton pressed" << std::endl;
+                                        if (manager.imClient) {
+                                            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                                            printf("Sending server info about disconected klient \n");
+                                            int n = write(sockfd, msg, strlen(msg) + 1);
+                                            if (n < 0) {
+                                                perror("Error writing to socket");
+                                            }
+                                        }
+
+
+                                        if (manager.imServer) {
+                                            char msg[128] = "close"; // make sure you allocate enough space to append the other string
+                                            int n = write(newsockfd, msg, strlen(msg) + 1);
+                                            if (n < 0) {
+                                                perror("Error writing to socket");
+                                            }
+                                        }
+                                        running = false;
                                         window.close();
+
                                         break;
+
+
 
                                     default:
                                         break;
@@ -509,10 +610,26 @@ int main() {
 
 
     }
-    delete &manager;
-    pthread_cancel(read_vlakno);
-    pthread_cancel(readFromServer_vlakno);
+
+    printf("{window} : is now closed\n");
+
+    if (manager.imServer) {
+        printf("{exit} : server closing threads\n");
+        close(newsockfd);
+        pthread_join(read_vlakno,NULL);
+        pthread_join(startServer_vlakno, NULL);
+        printf("{exit} : server closed threads\n");
+    }
+
+    if (manager.imClient) {
+        close(sockfd);
+        printf("{exit} : client closing threads\n");
+        pthread_join(readFromServer_vlakno,NULL);
+        printf("{exit} : client closed threads\n");
+    }
+
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond_player_joined);
+
     return 0;
 }
