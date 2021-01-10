@@ -70,7 +70,7 @@ void GameManager::update() {
                 }
             }
 
-            // check for player controls
+            // controls
             if (windowFocus) {
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) && !imServer && !imClient) {
