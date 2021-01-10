@@ -5,15 +5,10 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <netdb.h>
 
 #define SERVER_PORT 9999
@@ -21,34 +16,34 @@
 #define IP_ADDRESS "localhost"
 
 
-typedef struct dataStartServer{
-    int * sockfd;
-    int * newsockfd;
-    GameManager* manager;
-    pthread_cond_t * cond_player_joined;
-    pthread_mutex_t * mutex;
+typedef struct dataStartServer {
+    int *sockfd;
+    int *newsockfd;
+    GameManager *manager;
+    pthread_cond_t *cond_player_joined;
+    pthread_mutex_t *mutex;
 
 } DATA_START_SERVER;
 
-typedef struct dataCitac{
-    pthread_cond_t * cond_player_joined;
-    pthread_mutex_t * mutex;
-    int * newsockfd;
-    Player* player2Klient;
-    GameManager* manager;
+typedef struct dataCitac {
+    pthread_cond_t *cond_player_joined;
+    pthread_mutex_t *mutex;
+    int *newsockfd;
+    Player *player2Klient;
+    GameManager *manager;
 
 } DATA_CIT;
 
-typedef struct dataCitacServeru{
-    int * sockfd;
-    Player* player1Server;
-    GameManager* manager;
+typedef struct dataCitacServeru {
+    int *sockfd;
+    Player *player1Server;
+    GameManager *manager;
 
 } DATA_CIT_SERVER;
 
 
-void * startServer(void * param){
-    DATA_START_SERVER * data = (DATA_START_SERVER * ) param;
+void *startServer(void *param) {
+    DATA_START_SERVER *data = (DATA_START_SERVER *) param;
     printf("{Thread (startServer} -> started\n");
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t cli_len;
@@ -64,14 +59,14 @@ void * startServer(void * param){
     if (*data->newsockfd < 0) {
         perror("ERROR on accept");
     } else {
-        printf("{SERVER} -> Player joined server\n") ;
+        printf("{SERVER} -> Player joined server\n");
         data->manager->playing = true;
         data->manager->paused = false;
         data->manager->imServer = true;
         data->manager->imClient = false;
         data->manager->newsockfd = data->newsockfd;
         data->manager->resetGame();
-        data->manager->ball->direction=ballDirection::LEFT;
+        data->manager->ball->direction = ballDirection::LEFT;
 
     }
     printf("{Thread (startServer} -> end sending signal unlocking mutex\n");
@@ -80,16 +75,15 @@ void * startServer(void * param){
 }
 
 
+void *readFromClient(void *param) {
 
-void * readFromClient (void* param) {
-
-    char * pch;
+    char *pch;
     int i = 0;
     char buffer[256];
     int n;
-    DATA_CIT * data = (DATA_CIT*) param;
+    DATA_CIT *data = (DATA_CIT *) param;
     pthread_mutex_lock(data->mutex);
-    pthread_cond_wait(data->cond_player_joined,data->mutex);
+    pthread_cond_wait(data->cond_player_joined, data->mutex);
     printf("{Thread (readFromClient)} -> Got info about joining player start reading moves \n");
     sleep(0.5);
     while (true) {
@@ -103,25 +97,23 @@ void * readFromClient (void* param) {
         }
         if (buffer[0] == 'm') {
             printf("{Thread (readFromClient)} -> Client player2 is moving \n");
-            pch = strtok (buffer,":");
+            pch = strtok(buffer, ":");
             i = 0;
             sf::Vector2f position;
-            while (pch != NULL)
-            {
-                printf (" delimited %s\n",pch);
+            while (pch != NULL) {
+                printf(" delimited %s\n", pch);
 
-                if (i==1){
+                if (i == 1) {
                     position.x = atoi(pch);
-                } else if(i==2) {
+                } else if (i == 2) {
                     position.y = atoi(pch);
-                } pch = strtok (NULL, ":");
+                }
+                pch = strtok(NULL, ":");
                 i++;
             }
 
 
-                 data->manager->player2->object.setPosition(position);
-
-
+            data->manager->player2->object.setPosition(position);
 
 
         }
@@ -139,13 +131,13 @@ void * readFromClient (void* param) {
 }
 
 
-void * readFromServer (void* param) {
+void *readFromServer(void *param) {
 
     char buffer[256];
     int n;
-    DATA_CIT_SERVER * data = (DATA_CIT_SERVER *) param;
+    DATA_CIT_SERVER *data = (DATA_CIT_SERVER *) param;
     printf("{Vlakno} : Reading from server started\n");
-    char * pch;
+    char *pch;
     int i = 0;
     while (true) {
 
@@ -156,39 +148,39 @@ void * readFromServer (void* param) {
             perror("Error reading from socket");
             return NULL;
         }
-       if (buffer[0] == 'm') {
-           printf("{Thread (readFromServer)} -> SERVER player1 is moving to position\n");
-           pch = strtok (buffer,":");
-           i = 0;
-           sf::Vector2f position;
-           while (pch != NULL)
-           {
-               printf (" delimited %s\n",pch);
-
-               if (i==1){
-                   position.x = atoi(pch);
-               } else if(i==2) {
-                   position.y = atoi(pch);
-               } pch = strtok (NULL, ":");
-               i++;
-           }
-           data->manager->player1->object.setPosition(position);
-
-        }  else {
-
-            printf ("Splitting string \"%s\" into tokens:\n",buffer);
-            pch = strtok (buffer,":");
+        if (buffer[0] == 'm') {
+            printf("{Thread (readFromServer)} -> SERVER player1 is moving to position\n");
+            pch = strtok(buffer, ":");
             i = 0;
             sf::Vector2f position;
-            while (pch != NULL)
-            {
-                printf (" delimited %s\n",pch);
+            while (pch != NULL) {
+                printf(" delimited %s\n", pch);
 
-                if (i==1){
+                if (i == 1) {
                     position.x = atoi(pch);
-                } else if(i==2) {
+                } else if (i == 2) {
                     position.y = atoi(pch);
-                } pch = strtok (NULL, ":");
+                }
+                pch = strtok(NULL, ":");
+                i++;
+            }
+            data->manager->player1->object.setPosition(position);
+
+        } else {
+
+            printf("Splitting string \"%s\" into tokens:\n", buffer);
+            pch = strtok(buffer, ":");
+            i = 0;
+            sf::Vector2f position;
+            while (pch != NULL) {
+                printf(" delimited %s\n", pch);
+
+                if (i == 1) {
+                    position.x = atoi(pch);
+                } else if (i == 2) {
+                    position.y = atoi(pch);
+                }
+                pch = strtok(NULL, ":");
                 i++;
             }
             data->manager->ball->object.setPosition(position);
@@ -208,7 +200,6 @@ void * readFromServer (void* param) {
 }
 
 
-
 int main() {
 
 
@@ -218,7 +209,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode(width, height), "PONG GAME", sf::Style::Close);
     GameManager manager(width, height);
     manager.setWindow(&window);
-    manager.initializeComponents(20,100,15);
+    manager.initializeComponents(20, 100, 15);
 
     pthread_t read_vlakno;
     DATA_CIT dataCitac;
@@ -230,32 +221,15 @@ int main() {
     pthread_t startServer_vlakno;
     DATA_START_SERVER dataStartServer;
 
-    //pthread_attr_t attr_t1;
-    //pthread_attr_init(&attr_t1);
-    //pthread_attr_setdetachstate(&attr_t1,PTHREAD_CREATE_DETACHED);
     dataCitac.player2Klient = manager.player2;
     dataCitacServer.player1Server = manager.player1;
 
     int sockfd;
 
 
-    //manager->start();
-   // manager->ball->setDefaultSpeed(10.0);
-   // manager->ball->setSpeed(10.0);
-
-
-
-
-
-
-    //sf::View view(sf::Vector2f(0.0f, 0.0f), sf::Vector2f(height, height));  // is this ok ?s
-
-
-    // (*player1).setPosition(-view.getSize().x / 2, -view.getSize().y / 2); // works fine only with default origin
-    //(*player2).setPosition(view.getSize().x / 2 - ((*player2).object.getSize().x), view.getSize().y / 2 - ((*player2).object.getSize().y));   // works fine only with default origin
     pthread_cond_t cond_player_joined;
-    pthread_cond_init(&cond_player_joined,NULL);
-    pthread_mutex_t  mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_init(&cond_player_joined, NULL);
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     dataCitac.newsockfd = &newsockfd;
     dataCitac.manager = &manager;
@@ -263,7 +237,7 @@ int main() {
     dataCitac.mutex = &mutex;
 
 
-    pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);
+    pthread_create(&read_vlakno, NULL, &readFromClient, &dataCitac);
 
     while (window.isOpen()) {
         sf::Event evnt;
@@ -299,13 +273,11 @@ int main() {
                                         manager.playing = true;
                                         manager.paused = false;
                                         manager.resetGame();
-                                        manager.ball->direction=ballDirection::LEFT;
+                                        manager.ball->direction = ballDirection::LEFT;
                                         std::cout << "{MENU} -> 'Play' Buton pressed" << std::endl;
                                         break;
                                     case 1:
                                         std::cout << "{MENU} -> 'Create SERVER' Buton pressed" << std::endl;
-
-
 
 
                                         socklen_t cli_len;
@@ -318,7 +290,6 @@ int main() {
                                         serv_addr.sin_port = htons(SERVER_PORT);
                                         sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-                                        //printf("{SERVER} -> Waiting for other player to join server\n");
 
                                         if (sockfd < 0) {
                                             perror("Error creating socket");
@@ -336,48 +307,19 @@ int main() {
                                         dataStartServer.manager = &manager;
                                         dataStartServer.cond_player_joined = &cond_player_joined;
                                         dataStartServer.mutex = &mutex;
-                                        pthread_create(&startServer_vlakno,NULL,&startServer,&dataStartServer);
-                                     /*   listen(sockfd, 5);
-                                        cli_len = sizeof(cli_addr);
+                                        pthread_create(&startServer_vlakno, NULL, &startServer, &dataStartServer);
 
-
-
-                                        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-                                        if (newsockfd < 0) {
-                                            perror("ERROR on accept");
-                                            return 3;
-                                        } else {
-                                            printf("{SERVER} -> Player joined server\n") ;
-                                            manager.playing = true;
-                                            manager.paused = false;
-                                            manager.imServer = true;
-                                            manager.imClient = false;
-                                            manager.newsockfd = &newsockfd;
-                                            manager.resetGame();
-                                            manager.ball->direction=ballDirection::LEFT;
-
-                                        }*/
-
-
-                                        /*dataCitac.newsockfd = &newsockfd;
-                                        dataCitac.manager = &manager;
-
-
-                                        pthread_create(&read_vlakno,NULL,&readFromClient,&dataCitac);*/
-                                        //pthread_detach(read_vlakno);
                                         break;
                                     case 2:
                                         std::cout << "{MENU} -> 'Join SERVER' Buton pressed" << std::endl;
 
 
                                         struct sockaddr_in serv_addres;
-                                        struct hostent* server;
-
+                                        struct hostent *server;
 
 
                                         server = gethostbyname(IP_ADDRESS);
-                                        if (server == NULL)
-                                        {
+                                        if (server == NULL) {
                                             fprintf(stderr, "Error, no such host\n");
                                             return 2;
                                         }
@@ -412,12 +354,10 @@ int main() {
                                             manager.socketfd = &sockfd;
                                             manager.resetGame();
 
-                                            pthread_create(&readFromServer_vlakno,NULL,&readFromServer,&dataCitacServer);
+                                            pthread_create(&readFromServer_vlakno, NULL, &readFromServer,
+                                                           &dataCitacServer);
 
                                         }
-
-
-
 
 
                                         break;
@@ -461,7 +401,7 @@ int main() {
                                         break;
                                     case 1:
                                         std::cout << "{InGameMemu} -> 'Back to main menu" << std::endl;
-                                        if(manager.imServer) {
+                                        if (manager.imServer) {
                                             pthread_cancel(read_vlakno);
                                             close(*manager.newsockfd);
                                             close(sockfd);
@@ -500,12 +440,11 @@ int main() {
 
         window.clear();
         manager.update();
-        if (manager.playing){
+        if (manager.playing) {
             manager.draw();
         }
 
         window.display();
-
 
 
     }
