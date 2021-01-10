@@ -2,14 +2,13 @@
 // Created by jan on 31. 12. 2020.
 //
 
-#include <unistd.h>
+
 #include "../HeaderFiles/ColisionDetector.h"
 
 
 
 ColisionDetector::ColisionDetector(Player* p1, Player* p2, Ball* b, uint w, uint h)
 {
-    width = w;
     height = h;
     player1 = p1;
     player2 = p2;

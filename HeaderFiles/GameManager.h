@@ -36,10 +36,6 @@ public:
     bool playing;
     bool paused;
     uint width, height;
-    pthread_mutex_t mutex;
-    bool updatedPosPlayer1;
-    bool updatedPosPlayer2;
-    bool updatedPosBall;
     int scorePlayer1, scorePlayer2;
     Ball* ball;
     Player* player1 ;
@@ -53,8 +49,6 @@ public:
 
     GameManager( uint w,  uint h);
     ~GameManager();
-    void OpenWindow();
-    //void scoreUp(Player * player);
     void initializeComponents(float playerSizeX, float playerSizeY, float ballRadius);
     void update();
 
@@ -68,10 +62,8 @@ public:
 
     char* createPositionMsg(char* msg, int x, int y);
 
-    void startServer();
 
 
-    void readFromCLient();
 };
 
 #endif //PONG_GAMEMANAGER_H

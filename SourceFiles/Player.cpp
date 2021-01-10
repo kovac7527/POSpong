@@ -7,10 +7,6 @@
 
 
 
-void Player::setPosition(float x, float y)
-{
-    object.setPosition(sf::Vector2f(x, y));
-}
 
 void Player::setColor(sf::Color color)
 {

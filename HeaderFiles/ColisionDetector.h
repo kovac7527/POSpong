@@ -24,7 +24,6 @@ enum ballColison
 class ColisionDetector
 {
 private :
-    uint width;
     uint height;
     Player* player1;
     Player* player2;

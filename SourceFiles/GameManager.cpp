@@ -19,29 +19,6 @@ GameManager::GameManager( uint w,  uint h)
     imServer = false;
 }
 
-void GameManager::OpenWindow()
-{
-
-}
-
-
-
-//void GameManager::scoreUp(Player* player)
-//{
-//    if (player == player1) {
-//        scorePlayer1++;
-//    }
-//    else {
-//        scorePlayer2++;
-//    }
-//
-//    ball->Reset();
-//    player1->Reset();
-//    player2->Reset();
-//}
-
-
-
 void GameManager::setWindow(sf::RenderWindow* win ) {
     window = win;
 }
@@ -229,7 +206,7 @@ void GameManager::initializeComponents(float playerSizeX, float playerSizeY, flo
     scorePlayer2 = 0;
     ball = new Ball((int)width/2, (int)height / 2);
     ball->setRadius(ballRadius);
-    ball->setDefaultSpeed(1.0);
+    ball->setDefaultSpeed(0.2);
 
     player1 = new Player(playerSizeX / 2,width / 2);
     player1->setSize(playerSizeX, playerSizeY);
@@ -277,15 +254,6 @@ void GameManager::resetPositions() {
 }
 
 
-void GameManager::startServer() {
-  /*  gameServer = new server();//// here will some staff to create server
-    gameServer->startServer(player1 , player2, ball);
-    this->imServer = true;
-    this->imClient = false;*/
-
-
-
-}
 
 char *GameManager::createPositionMsg(char* msg, int x, int y) {
     char integer_stringx[32];

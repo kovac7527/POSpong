@@ -35,7 +35,6 @@ public:
 
     };
 
-    void setPosition(float x, float y);
     void setColor(sf::Color color);
     void setSize(float x, float y);
     void Reset();

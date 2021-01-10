@@ -4,7 +4,6 @@
 
 #include "../HeaderFiles/Ball.h"
 
-#include <cstdlib>
 
 Ball::Ball(int posX, int posY)
 {
@@ -30,10 +29,6 @@ void Ball::changeDirection(ballDirection dir)
     direction = dir;
 }
 
-void Ball::setRandomDireciton()
-{
-    direction = (ballDirection) ((rand() % 6)+1);
-}
 
 void Ball::move()
 {
@@ -63,10 +58,6 @@ void Ball::move()
     }
 }
 
-void Ball::setSpeed(float speed)
-{
-    BallSpeed = speed;
-}
 
 void Ball::setDefaultSpeed(float speed)
 {

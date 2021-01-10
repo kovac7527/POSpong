@@ -21,23 +21,22 @@ class Ball
 {
 private :
     int origX, origY;
-    float BallSpeed = 3.0;
+    float BallSpeed = 0.2;
 
 
 public :
-    float defaultBallSpeed = 3.0;
+    float defaultBallSpeed = 0.2;
     ballDirection direction;
     sf::CircleShape object;
     Ball(int posX, int posY);
     void Reset();
     void changeDirection(ballDirection dir);
-    void setRandomDireciton();
     void move();
 
 
     void draw(sf::RenderWindow* window) ;
 
-    void setSpeed(float speed);
+
     void setDefaultSpeed(float speed);
     void setRadius(float radius);
 
